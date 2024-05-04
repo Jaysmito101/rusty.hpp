@@ -1,7 +1,5 @@
 # rusty.hpp
 
-## Index
-
 ## What is `rusty.hpp`?
 
 At the core, the idea is to have implement a minimal and lightweight yet powerful and performant system to be able to emulate Rust's borrow checker and general memory model as a C++ header-only library. 
@@ -30,3 +28,78 @@ Here too, `rusty.hpp` tries to add these concepts into a regular C++ codebase wi
 ## How to use this?
 
 Whith all that being said, it still is a interesting library which you could easily try out in your own project. To get started all you need to do is get the header file [rusty.hpp](./rusty.hpp) and include it in your project. It heavily relies on templates to make it completely generic to be integrated anywhere. Also this has got dependencies apart from the C++20 standard library(C++20 is needed so that I could use things like std::format, concepts, etc). After that you need a C++20 compitable compiler (MSVC or gcc 13+) and you are ready to go.
+
+## Examples / Usage
+
+### Rust Like type proxies
+`rusty.hpp` defines proxies to standard C++ types named like the Rust types also under the namespace ``rs::literals`` there are C++ literal helpers for these types.
+
+```c++
+i8 a = 45_i8;
+i16 b = 45_i16;
+i32 c = 45_i32;
+i64 d = 45_i64;
+u8 e = 45_u8;
+u16 f = 45_u16;
+u32 g = 45_u32;
+u64 h = 45_u64;
+f32 i = 45.0_f32;
+f64 j = 45.0_f64;
+```
+
+### print proxies
+`rusty.hpp` defines `print` and `println` methods to be like a eqivalent of Rust's `print!` and `println!` macros.
+
+```
+println("Hello World! {}", 45);
+```
+
+### The Borrow Checker 
+
+In `rusty.hpp` the primary way to use the borrow checker is to use the `rs::Val` type wrapper around everyting. This is a special type that enfoces all the rules and manages the borrowing and ownership of the data in general. Also it is to be noted that this library doesnt use any sort of global state, everything is localized inside the `Val` type.
+
+```
+struct Foo {
+  i32 a;
+  i32 b;
+
+  Foo(i32 a, i32 b) : a(a), b(b) { }
+}
+
+auto a = Val(46584); // With primitives
+auto b = Val(std::string("Hello World")); // With stl
+auto c = Val(Foo {4, 6}); // Pass object as it is
+auto d = MakeVal<Foo>(5, 3); // Another way possible
+auto e = Val(new Foo(3, 5)); // This pointer is now owned and manged by the Val and you dont need to delete it
+```
+
+Now, it is to be noted that we use Move constructors to move the data and take ownership but in C++ there is no way to implicitly know whether an object is moved properly or not, and The destructor will be called for after the move as in:
+
+```
+auto a = Val(Foo {4, 6}); // Pass object as it is
+// ~Foo called here for the temporary object
+```
+
+Now, there are many very easy ways to deal with it,
+
+* For simple object that can be easly be copied its not a issue so you could just ignore it
+* For others there are two main options:
+  - Implement a move constructor and desctuctor and then track the move and bypass the desctuctor call accordingly
+  - Or, the easier way would be to just pass a pointer, the rest of the API will behave the same
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
