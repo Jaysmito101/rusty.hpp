@@ -87,9 +87,39 @@ Now, there are many very easy ways to deal with it,
   - Implement a move constructor and desctuctor and then track the move and bypass the desctuctor call accordingly
   - Or, the easier way would be to just pass a pointer, the rest of the API will behave the same
 
+Now about using the Val,
+```
+auto a = Val(45);
+auto b = Val(5);
+auto c = *a + *b; // here c is a i32, you can wrap it up in a Val if you want
+
+// All of them share same api (mostly)
+auto foo0 = Val(Foo{ 0, 0 }); 
+auto foo1 = MakeVal<Foo>(1, 1);
+auto foo3 = Val(new Foo(0, 0));
+auto foo4 = Val(std::make_shared<Foo>(45, 5));
+auto foo5 = Val(std::make_unique<Foo>(45, 5));
+foo1->a = 2; // be it a pointer or a Object you should be able to acces inner filed like this
+
+```
 
 
+Now about the actual checks:
 
+```
+auto foo2 = foo0; // foo0's ownership is not transfered to foo2
+println("foo2: {}", *foo2); // ok
+println("foo0: {}", *foo0); // Error: foo0 was moved to foo2
+
+foo0 = pass_through(foo0); // pass ownership of foo0 to pass_through function and the function returns it back
+println("foo0: {}", *foo0); // Works as the ownership was returned
+
+non_pass_through(foo0); // pass ownership of foo0 to pass_through function and it gets consumed by it
+println("foo0: {}", *foo0); // Error: foo0 was moved to non_pass_through and consumed
+
+non_pass_through(foo0.clone()); // This needs a copy enabled type
+println("foo0: {}", *foo0); // Works as the ownership was cloned
+```
 
 
 
