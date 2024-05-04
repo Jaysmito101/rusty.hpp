@@ -193,9 +193,39 @@ println("{}", aaa.unwrap_or_else([]() { return new Foo(546, 546); })); // again 
 println("{}", *aaa.as_ref().unwrap()); // There we get a immutable reference to the object and
                                        // then unwrap it and dereferemce the reference to get value
 println("{}", aaa.map<f32>([](Foo* foo ) { return (f32)foo->a; })); // Map the value to something else
+
+aaa.cloned(); // Crates a new Option<T> cloning the internal Val
 ```
 
+About Result:
 
+```
+auto ok_result = Ok<i32, str>(42); // Create a Result with Ok variant, need to give type hints for both
+auto err_result = Err<i32, std::string>("Error occurred"); // Create a Result with Err variant
+
+println("ok_result: {}", ok_result);
+println("err_result: {}", err_result);
+
+ok_result.is_ok(); // Check if the Result is Ok
+ok_result.is_err(); // Check if the Result is Err
+ok_result.is_valid(); // Check if the Result is valid or invalid
+
+ok_result.ok(); // Extract the Ok value if present, otherwise None, consumes self
+err_result.err(); // Extract the Err value if present, otherwise None, consumes self
+
+ok_result.unwrap(); // Same as .ok(), but throws an exception
+err_result.unwrap_err(); // Same as .err(), but throws an exception
+
+ok_result.unwrap_or(0); // Unwrap the Ok value, or return a default value if it's an Err
+
+ok_result.unwrap_or_else([]() { return 0; });           // Unwrap the Ok value, or execute a function to get a default value if it's an Err
+
+ok_result.map<float>([](int value) { return static_cast<float>(value); }); // Map the Ok value to a different type
+
+ok_result.expect("Failed to retrieve value"); // Same as unwrap(), but allows providing a custom error message
+
+ok_result.cloned(); // Crates a new Result<T, E> cloning the internal Val
+```
 
 
 
