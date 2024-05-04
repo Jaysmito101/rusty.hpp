@@ -119,8 +119,30 @@ println("foo0: {}", *foo0); // Error: foo0 was moved to non_pass_through and con
 
 non_pass_through(foo0.clone()); // This needs a copy enabled type
 println("foo0: {}", *foo0); // Works as the ownership was cloned
+
+// Note to avoid exception and check if a Val is a valid object or not you can use
+if( foo0.is_valid() ) { ... }
 ```
 
+About References and Borrowing:
+
+```
+{
+  auto foo_ref = foo0.borrow(); // borrows immutably
+  let b = foo_ref->a; // ok
+  foo_ref->a = 56; // not possible as foo_ref is immutable reference to foo
+
+  auto foo1_ref = foo1.borrow_mut(); // borrows mutably
+  let b = foo1_ref->a; // ok
+  foo1_ref->a = 56; // ok
+}
+
+// Borrow safety
+{
+  auto foo_ref0 = foo0.borrow();
+  auto foo_ref1 = foo0.borrow();  // ok as multiple immutable borrows are allowed
+}
+```
 
 
 
