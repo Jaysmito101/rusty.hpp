@@ -169,12 +169,31 @@ non_pass_through(foo3); // loose the ownership of foo3 as its transfereed to non
          you could use .value() method of Val to access the pointers rather than the -> operator
 ```
 
+About Option:
 
+```
+auto aa = Some(46);    // this is a equivalent to rust Option
+auto ba = None<u32>(); // Here for none unlike rust you have to
+                       // give the type annotation for the templates
+                       // as we need to setup for the Some too
 
+println("aa: {}", aa);
+println("aa: {}", aa.unwrap()); // this might throw exceptions if aa is None
 
+aa.is_some(); // check if it is some
+aa.is_none(); // check if it is none
 
+aa.as_ref(); // Option<Val<T>> -> Option<Ref<T>>
+aa.as_mut(); // Option<Val<T>> -> Option<RefMut<T>>
 
-
+auto aaa = Some( new Foo(45, 5) );
+println("{}", aaa.unwrap()); // This throws an exception if it is None
+println("{}", aaa.unwrap_or( new Foo(0, 0) )); // returns the value if its none, (wraps it up in a Val)
+println("{}", aaa.unwrap_or_else([]() { return new Foo(546, 546); })); // again here it is wrapped in a Val
+println("{}", *aaa.as_ref().unwrap()); // There we get a immutable reference to the object and
+                                       // then unwrap it and dereferemce the reference to get value
+println("{}", aaa.map<f32>([](Foo* foo ) { return (f32)foo->a; })); // Map the value to something else
+```
 
 
 
