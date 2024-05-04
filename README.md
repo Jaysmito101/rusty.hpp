@@ -122,6 +122,11 @@ println("foo0: {}", *foo0); // Works as the ownership was cloned
 
 // Note to avoid exception and check if a Val is a valid object or not you can use
 if( foo0.is_valid() ) { ... }
+
+// Manually forcefully invalidate/drop a Val
+foo0.drop() // the resource is destroyed and this foo0 is now invalid
+
+// Note: a Val is a non-nullable value, so it can never be null
 ```
 
 About References and Borrowing:
@@ -141,8 +146,30 @@ About References and Borrowing:
 {
   auto foo_ref0 = foo0.borrow();
   auto foo_ref1 = foo0.borrow();  // ok as multiple immutable borrows are allowed
+
+  auto foo_ref2 = foo0.borrow_mut(); // Error as foo0 has already been borrowed immutably
 }
+
+{
+  auto foo_ref0 = foo0.borrow_mut();
+  auto foo_ref1 = foo0.borrow();  // Error as foo0 has already been borrowed mutably
+}
+
+// lifetime management of a ref(kinda?)
+let foo3 = Val(65.0_f32);
+auto foo3_ref = foo3.borrow();
+non_pass_through(foo3); // loose the ownership of foo3 as its transfereed to non_pass_through
+                        // and consumed there and foo3_ref now supposedly is a
+                        // dangling reference
+// foo3_ref.is_valid() or if(foo3_ref) // both will be false
+// println("foo3_ref: {}", *foo3_ref); // Error: ref value has expired
+
+// Note: Ref and RefMut too are non-nullable
+// Note: If for some reason you managed to have multiple levels of pointers inside the Val object
+         you could use .value() method of Val to access the pointers rather than the -> operator
 ```
+
+
 
 
 
