@@ -48,7 +48,7 @@ f64 j = 45.0_f64;
 ```
 
 ### print proxies
-`rusty.hpp` defines `print` and `println` methods to be like a eqivalent of Rust's `print!` and `println!` macros.
+`rusty.hpp` defines `print` and `println` methods to be like a equivalent of Rust's `print!` and `println!` macros.
 
 ```
 println("Hello World! {}", 45);
