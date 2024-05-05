@@ -58,7 +58,7 @@ println("Hello World! {}", 45);
 
 In `rusty.hpp` the primary way to use the borrow checker is to use the `rs::Val` type wrapper around everyting. This is a special type that enfoces all the rules and manages the borrowing and ownership of the data in general. Also it is to be noted that this library doesnt use any sort of global state, everything is localized inside the `Val` type.
 
-```
+```c++
 struct Foo {
   i32 a;
   i32 b;
@@ -75,7 +75,7 @@ auto e = Val(new Foo(3, 5)); // This pointer is now owned and manged by the Val 
 
 Now, it is to be noted that we use Move constructors to move the data and take ownership but in C++ there is no way to implicitly know whether an object is moved properly or not, and The destructor will be called for after the move as in:
 
-```
+```c++
 auto a = Val(Foo {4, 6}); // Pass object as it is
 // ~Foo called here for the temporary object
 ```
@@ -88,7 +88,7 @@ Now, there are many very easy ways to deal with it,
   - Or, the easier way would be to just pass a pointer, the rest of the API will behave the same
 
 Now about using the Val,
-```
+```c++
 auto a = Val(45);
 auto b = Val(5);
 auto c = *a + *b; // here c is a i32, you can wrap it up in a Val if you want
@@ -106,7 +106,7 @@ foo1->a = 2; // be it a pointer or a Object you should be able to acces inner fi
 
 Now about the actual checks:
 
-```
+```c++
 auto foo2 = foo0; // foo0's ownership is not transfered to foo2
 println("foo2: {}", *foo2); // ok
 println("foo0: {}", *foo0); // Error: foo0 was moved to foo2
@@ -131,7 +131,7 @@ foo0.drop() // the resource is destroyed and this foo0 is now invalid
 
 About References and Borrowing:
 
-```
+```c++
 {
   auto foo_ref = foo0.borrow(); // borrows immutably
   let b = foo_ref->a; // ok
@@ -171,7 +171,7 @@ non_pass_through(foo3); // loose the ownership of foo3 as its transfereed to non
 
 About Option:
 
-```
+```c++
 auto aa = Some(46);    // this is a equivalent to rust Option
 auto ba = None<u32>(); // Here for none unlike rust you have to
                        // give the type annotation for the templates
@@ -199,7 +199,7 @@ aaa.cloned(); // Crates a new Option<T> cloning the internal Val
 
 About Result:
 
-```
+```c++
 auto ok_result = Ok<i32, str>(42); // Create a Result with Ok variant, need to give type hints for both
 auto err_result = Err<i32, std::string>("Error occurred"); // Create a Result with Err variant
 
