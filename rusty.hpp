@@ -624,8 +624,29 @@ namespace rs {
 
 				m_DropCheck = other.m_DropCheck;
 				m_Value = std::move(other.m_Value);
-				m_ImmutableBorrowCount = other.m_ImmutableBorrowCount;
-				m_IsMutableBorrowed = other.m_IsMutableBorrowed;
+				m_ImmutableBorrowCount = (u32)other.m_ImmutableBorrowCount;
+				m_IsMutableBorrowed = (bool)other.m_IsMutableBorrowed;
+
+				other.reset_values();
+			}
+			return *this;
+		}
+
+		inline auto operator=(ValRaw& other) -> ValRaw& {
+			if (this != &other) {
+				if (!other.is_valid()) {
+					throw ValValueMovedException();
+				}
+
+				if (!m_DropCheck.is_null()) {
+					m_DropCheck.drop(); // Ownership is consumed by this instance
+					// all references to the value are now invalid
+				}
+
+				m_DropCheck = other.m_DropCheck;
+				m_Value = std::move(other.m_Value);
+				m_ImmutableBorrowCount = (u32)other.m_ImmutableBorrowCount;
+				m_IsMutableBorrowed = (bool)other.m_IsMutableBorrowed;
 
 				other.reset_values();
 			}
@@ -882,13 +903,35 @@ namespace rs {
 		inline ~OptionRaw() { }
 
 		// a move constructor
-		inline OptionRaw(OptionRaw&& other)
-			: m_Value(std::move(other.m_Value)) { }
+		inline OptionRaw(OptionRaw&& other) {
+			if (other.is_some()) {
+				m_Value = std::move(other.m_Value);
+			}
+		}
+
+		inline OptionRaw(const OptionRaw& other) = delete;
+
+		inline OptionRaw(OptionRaw& other) {
+			if (other.is_some()) {
+				m_Value = std::move(other.m_Value);
+			}
+		}
 
 		// a move assignment operator
 		inline OptionRaw& operator=(OptionRaw&& other) {
 			if (this != &other) {
 				m_Value = std::move(other.m_Value);
+			}
+			return *this;
+		}
+
+		inline OptionRaw& operator=(const OptionRaw& other) = delete;
+
+		inline OptionRaw& operator=(OptionRaw& other) {
+			if (this != &other) {
+				if (other.is_some()) {
+					m_Value = std::move(other.m_Value);
+				}
 			}
 			return *this;
 		}
@@ -1050,11 +1093,6 @@ namespace rs {
 
 
 
-		// delete the copy constructor and copy assignment operator
-		inline OptionRaw(const OptionRaw& other) = delete;
-		inline OptionRaw& operator=(const OptionRaw& other) = delete;
-
-
 		inline auto unsafe_ptr() const { return m_Value.value(); }
 
 		template<typename Ty, bool Ts>
@@ -1116,14 +1154,21 @@ namespace rs {
 		// delete the copy constructor and copy assignment operator
 		inline ResultRaw(const ResultRaw& other) = delete;
 
+		inline ResultRaw(ResultRaw& other) {
+			if (other.m_Value.is_valid()) {
+				m_Value = std::move(other.m_Value);
+			}
+			else {
+				m_Error = std::move(other.m_Error);
+			}
+		}
+
 		inline ResultRaw(ResultRaw&& other) {
-			if (this != &other) {
-				if (other.m_Value.is_valid()) {
-					m_Value = std::move(other.m_Value);
-				}
-				else {
-					m_Error = std::move(other.m_Error);
-				}
+			if (other.m_Value.is_valid()) {
+				m_Value = std::move(other.m_Value);
+			}
+			else {
+				m_Error = std::move(other.m_Error);
 			}
 		}
 
