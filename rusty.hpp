@@ -58,6 +58,7 @@ namespace rs
 
 	using f32 = float;
 	using f64 = double;
+    using usize = size_t;
 
 	using str = std::string;
 
@@ -1708,3 +1709,206 @@ namespace std {
 }
 
 #endif
+
+// Traits for C++
+
+namespace rs {
+
+    namespace internal {
+        constexpr auto hash_string(const char* input) {
+            usize hash = sizeof(usize) == 8 ? 0xcbf29ce484222325 : 0x811c9dc5;
+            const size_t prime = sizeof(usize) == 8 ? 0x00000100000001b3 : 0x01000193;
+
+            while (*input) {
+                hash ^= static_cast<usize>(*input);
+                hash *= prime;
+                ++input;
+            }
+
+                return hash;
+        }
+
+        template <auto T> 
+        constexpr auto get_type_hash()
+        {
+            #ifdef _MSC_VER
+            return hash_string(__FUNCSIG__);
+            #else
+            return hash_string(__PRETTY_FUNCTION__);
+            #endif
+        }
+
+        template<typename... T>
+        struct func_types;
+
+        template<typename RetType, typename Class, typename... ValTypes> 
+        struct func_types<RetType(Class::*)(ValTypes...)> {
+            using ParamsType = std::tuple<ValTypes...>;
+			using ParamsTypeWithContext = std::tuple<void*, ValTypes...>;
+            using ReturnType = RetType;
+            using ClassType = Class;
+            using FunctionType = RetType(ValTypes...);
+            using FunctionTypeWithContext = RetType(void*, ValTypes...);
+        };
+    }
+
+
+    // The main trait object
+    template<auto... Args>
+    struct trait_methods;
+
+    template<>
+    struct trait_methods<> { };
+
+    template<auto This, auto... Rest>
+    struct trait_methods<This, Rest...> : public trait_methods<Rest...> {
+        using Self = trait_methods<This, Rest...>;
+        using Base = trait_methods<Rest...>;
+		using FuncType = internal::func_types<decltype(This)>;
+		using CallerType = typename FuncType::FunctionTypeWithContext*;
+
+        template<auto ptr>
+        constexpr auto get_caller() {
+  	        if constexpr (internal::get_type_hash<This>() == internal::get_type_hash<ptr>()) {
+    	        return Caller;
+            } else {
+    	        return Base::template get_caller<ptr>();
+            }
+        }
+
+
+	// protected:
+		template<auto ptr, typename CallerTypeIn>
+		auto bind_caller(CallerTypeIn caller) {
+			if constexpr (internal::get_type_hash<This>() == internal::get_type_hash<ptr>()) {
+				Caller = caller;
+			} else {
+				Base::template bind_caller<ptr, CallerTypeIn>(caller);
+			}
+		}
+
+        CallerType Caller = nullptr;
+
+		template<typename Type>
+		friend struct trait;
+    };
+
+    template <typename Type>
+    struct trait {
+		inline constexpr bool is_valid() const { return false; }
+	};
+
+
+    template <auto A, auto B>
+    concept MatchFunctionPointers = std::is_same_v<typename internal::func_types<decltype(A)>::FunctionType, typename internal::func_types<decltype(B)>::FunctionType>;
+
+
+}
+
+
+#define rs__macro_comma() ,
+#define rs__macro_and() &&
+#define rs__macro_semicolon() ;
+#define rs__macro_none() 
+
+#define rs__macro_ex_first_(x, ...) x
+#define rs__macro_ex_first() rs__macro_ex_first_
+#define rs__macro_ex_second_(x, y, ...) y
+#define rs__macro_ex_second() rs__macro_ex_second_
+
+#define rs__macro_make_type_methods_single(type, method) &type::method
+
+#define rs__macro_create_generic_type_contraint_single__(x, y) MatchFunctionPointers<x, y>
+#define rs__macro_create_generic_type_contraint_single_(method, type0, type1) rs__macro_create_generic_type_contraint_single__( rs__macro_make_type_methods_single(type0, method), rs__macro_make_type_methods_single(type1, method) )
+#define rs__macro_create_generic_type_contraint_single(type, method) rs__macro_create_generic_type_contraint_single_(method, rs__macro_ex_first()type, rs__macro_ex_second()type)
+
+#define rs__macro_bind_methods_single__(method, type, gentype) \
+{ \
+	auto rs__caller = []<typename... FnArgs>(void* _this, FnArgs... args) -> auto { return static_cast<gentype*>(_this)->method(std::forward<FnArgs>(args)...); }; \
+	t.bind_caller<&type::method>(rs__caller); \
+} 
+#define rs__macro_bind_methods_single(type, method) rs__macro_bind_methods_single__(method, rs__macro_ex_first()type, rs__macro_ex_second()type)
+
+#define rs__macro_make_method_impls_single(type, method) \
+template<typename... FnArgs> \
+requires std::is_same_v<internal::func_types<decltype(&type::method)>::ParamsType, std::tuple<FnArgs...>> \
+inline internal::func_types<decltype(&type::method)>::ReturnType method(FnArgs... args) { \
+	if constexpr (std::is_same_v<internal::func_types<decltype(&type::method)>::ReturnType, void>) { \
+		get_caller<&type::method>()(m_This, std::forward<FnArgs>(args)...); \
+	} else { \
+		return get_caller<&type::method>()(m_This, std::forward<FnArgs>(args)...); \
+	} \
+}
+
+#define rs__macro_foreach_1(func, sep, type, method, ...)  func(type, method)
+#define rs__macro_foreach_2(func, sep, type, method, ...)  func(type, method) sep() rs__macro_foreach_1(func, sep, type, __VA_ARGS__)
+#define rs__macro_foreach_3(func, sep, type, method, ...)  func(type, method) sep() rs__macro_foreach_2(func, sep, type, __VA_ARGS__)
+#define rs__macro_foreach_4(func, sep, type, method, ...)  func(type, method) sep() rs__macro_foreach_3(func, sep, type, __VA_ARGS__)
+#define rs__macro_foreach_5(func, sep, type, method, ...)  func(type, method) sep() rs__macro_foreach_4(func, sep, type, __VA_ARGS__)
+#define rs__macro_foreach_6(func, sep, type, method, ...)  func(type, method) sep() rs__macro_foreach_5(func, sep, type, __VA_ARGS__)
+#define rs__macro_foreach_7(func, sep, type, method, ...)  func(type, method) sep() rs__macro_foreach_6(func, sep, type, __VA_ARGS__)
+#define rs__macro_foreach_8(func, sep, type, method, ...)  func(type, method) sep() rs__macro_foreach_7(func, sep, type, __VA_ARGS__)
+#define rs__macro_foreach_9(func, sep, type, method, ...)  func(type, method) sep() rs__macro_foreach_8(func, sep, type, __VA_ARGS__)
+#define rs__macro_foreach_10(func, sep, type, method, ...) func(type, method) sep() rs__macro_foreach_9(func, sep, type, __VA_ARGS__)
+#define rs__macro_foreach_11(func, sep, type, method, ...) func(type, method) sep() rs__macro_foreach_10(func, sep, type, __VA_ARGS__)
+#define rs__macro_foreach_12(func, sep, type, method, ...) func(type, method) sep() rs__macro_foreach_11(func, sep, type, __VA_ARGS__)
+#define rs__macro_foreach_13(func, sep, type, method, ...) func(type, method) sep() rs__macro_foreach_12(func, sep, type, __VA_ARGS__)
+#define rs__macro_foreach_14(func, sep, type, method, ...) func(type, method) sep() rs__macro_foreach_13(func, sep, type, __VA_ARGS__)
+#define rs__macro_foreach_15(func, sep, type, method, ...) func(type, method) sep() rs__macro_foreach_14(func, sep, type, __VA_ARGS__)
+#define rs__macro_foreach_16(func, sep, type, method, ...) func(type, method) sep() rs__macro_foreach_15(func, sep, type, __VA_ARGS__)
+
+#define rs__macro_concat(a, b) rs__macro_concat_(a, b)
+#define rs__macro_concat_(a, b) rs__macro_concat__(a, b)
+#define rs__macro_concat__(a, b) a##b
+
+#define rs__macro_foreach_narg(...) rs__macro_foreach_narg_(__VA_ARGS__, rs__macro_foreach_rseq_n())
+#define rs__macro_foreach_narg_(...) rs__macro_foreach_arg_n(__VA_ARGS__)
+#define rs__macro_foreach_arg_n(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, N, ...) N
+#define rs__macro_foreach_rseq_n() 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1
+#define rs__macro_foreach_(N, func, type, method, ...) rs__macro_concat(rs__macro_foreach_, N)(func, type, method, __VA_ARGS__)
+
+
+#define rs__macro_make_type_methods_(func, sep, type, ...) rs__macro_foreach_(rs__macro_foreach_narg(__VA_ARGS__), func, sep, type, __VA_ARGS__)
+#define rs__macro_make_type_methods(type, ...) rs__macro_make_type_methods_(rs__macro_make_type_methods_single, rs__macro_comma, type, __VA_ARGS__)
+
+#define rs__macro_create_generic_type_contraint__(func, sep, type, ...) rs__macro_foreach_(rs__macro_foreach_narg(__VA_ARGS__), func, sep, type, __VA_ARGS__)
+#define rs__macro_create_generic_type_contraint_(type, ...) rs__macro_create_generic_type_contraint__(rs__macro_create_generic_type_contraint_single, rs__macro_and, type, __VA_ARGS__)
+#define rs__macro_create_generic_type_contraint(type, gentype, ...) requires rs__macro_create_generic_type_contraint_((type, gentype), __VA_ARGS__)
+// or this for a better error message for some cases
+// #define rs__macro_create_generic_type_contraint(type, gentype, ...) static_assert( rs__macro_create_generic_type_contraint_((type, gentype), __VA_ARGS__) , "The generic type does not fulfill the trait constraints, check if all the trait methods are implmented correctly!" )
+
+#define rs__macro_bind_methods__(func, sep, type, ...) rs__macro_foreach_(rs__macro_foreach_narg(__VA_ARGS__), func, sep, type, __VA_ARGS__)
+#define rs__macro_bind_methods_(type, ...) rs__macro_bind_methods__(rs__macro_bind_methods_single, rs__macro_none, type, __VA_ARGS__)
+#define rs__macro_bind_methods(type, gentype, ...) rs__macro_bind_methods_((type, gentype), __VA_ARGS__)
+
+#define rs__macro_make_method_impls_(func, sep, type, ...) rs__macro_foreach_(rs__macro_foreach_narg(__VA_ARGS__), func, sep, type, __VA_ARGS__)
+#define rs__macro_make_method_impls(type, ...) rs__macro_make_method_impls_(rs__macro_make_method_impls_single, rs__macro_none, type, __VA_ARGS__)
+
+#define rs__macro_declare_trait_type(type, ...) \
+template <> \
+struct rs::trait<type> : public rs::trait_methods< rs__macro_make_type_methods(type, __VA_ARGS__) > { \
+    using Self = rs::trait<type>; \
+    using Methods = rs::trait_methods< rs__macro_make_type_methods(type, __VA_ARGS__) >; \
+	trait() { } \
+ \
+    template <typename GenericType> \
+    rs__macro_create_generic_type_contraint(type, GenericType, __VA_ARGS__) \
+    static auto make(GenericType* type_val) \
+    { \
+        auto t = rs::trait<type>(); \
+		rs__macro_bind_methods(type, GenericType, __VA_ARGS__) \
+		t.m_IsValid = true; \
+		t.m_This = type_val; \
+		return t; \
+    } \
+ \
+    rs__macro_make_method_impls(type, __VA_ARGS__) \
+ \
+	inline const auto is_valid() const { return m_IsValid; } \
+private: \
+	bool m_IsValid = false; \
+	void* m_This = nullptr; \
+} \
+
+#define make_trait(type, ...) \
+    rs__macro_declare_trait_type(type, __VA_ARGS__)
