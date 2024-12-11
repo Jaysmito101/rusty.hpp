@@ -227,7 +227,116 @@ ok_result.expect("Failed to retrieve value"); // Same as unwrap(), but allows pr
 ok_result.cloned(); // Crates a new Result<T, E> cloning the internal Val
 ```
 
+# Traits in C++!
 
+Traits in C++
 
+Let us discuss traits. Before delving deeper, it is important to acknowledge the common reliance on inheritance in C++. While inheritance is a powerful mechanism, it often introduces complexity and maintenance challenges, and dreadful Code/Data Dependencies. This is where traits offer a compelling alternative: a clean, flexible, and streamlined approach to defining shared behavior.
 
+In Rust, traits are a cornerstone. They let you define shared behavior abstractly without tying yourself into the tangly web of inheritance. In C++? Well, you’re usually stuck with inheritance, interfaces, or some template wizardry that’s nightmare fuel for a lot. 
+
+To borrow from Rust’s documentation:
+
+> A trait defines the functionality a particular type has and can share with other types. We can use traits to define shared behavior in an abstract way.
+
+In plain English: traits are like contracts. If your type says it has a trait, it promises to implement specific behavior—no ifs, no buts, and importantly no DATA!
+
+In C++ there isn't any direct alternative, the way is to literally fight the type system, and burn in the hell of SFINAE, and write absurdly complex macros! Whats this project? -> Exactly that! (well packaged nicely in a generic enough way to play around)Disclaimer: As already mentioned at the top : this library is mainly for experimentation and not production. Although for traits part, there are almost no overheads as most of it is resolved compile time with macros and templates.
+
+### Creating Traits
+
+Here’s how you can create and use traits, Rust-style, but in C++:
+
+Defining a Trait
+```
+struct Shape {
+    void draw();
+    int area(int x, int y);  
+};
+
+make_trait(Shape, draw, area);
+```
+Let’s break this down:
+
+* Shape is the trait we’re defining. It’s a promise that any type claiming to be a Shape will implement the methods draw and area. It can be literally any C++ struct/class which you define just to create a type representation of the trait you are actually about to create.
+
+* make_trait does the heavy lifting of wiring everything together, you pass in the name of the struct and the functions you want to have in the trait (welp you have to do its as Reflection isnt really there in C++20, but I hope this is clean enough). This macro specializes a special type trait<T> [with T = Shape] and sets everything up!
+
+### Implementing a Trait
+
+Now, let’s create some shapes:
+```
+struct Circle {
+    void draw() {
+        println("Drawing a circle");
+    }
+
+    int area(int x, int y) {
+        return x * y; // Pretend this is accurate for circles
+    }
+
+    int someOtherFunction() {
+        return 0; // This can exist, but it won't affect the trait
+    }
+};
+
+struct Square {
+    void draw() {
+        println("Drawing a square");
+    }
+
+    int area(int x, int y) {
+        return x + y; // Totally correct for squares, right?
+    }
+};
+```
+Notice how these structs implement the methods draw and area. That’s all that’s needed to claim they’re compatible with the Shape trait.
+
+### Using Traits
+
+Now comes the fun part:
+```
+int main() {
+    auto circle = Circle();
+    auto square = Square();
+    // NOTE: all of this is strictly checked, so if you are creating
+    // a trait out of a Object, the object MUST implement all the trait functions
+    auto t0 = trait<Shape>::make(&circle);
+    t0.draw();
+
+    auto t1 = trait<Shape>::make(&square);
+    t1.draw();
+
+    // Another thing to be kept in mind is trait<T> is just like a View
+    // It DOES NOT OWN anything, so you are the one making sure the data
+    // pointer is valid
+  
+    auto array = std::array{t1, t0};
+    for (auto& shape : array) {
+        std::cout << shape.area(2, 3) << std::endl;
+    }    
+}
+```
+
+Output:
+```
+Drawing a circle
+Drawing a square
+5
+6
+```
+
+### What’s happening here?
+
+trait<Shape>::make wraps a Circle instance in a way that enforces the Shape contract.
+
+You can now call draw and area on t, knowing it conforms to the Shape trait.
+
+Why Traits Rock (Especially Here)
+
+No inheritance woes: Traits let you define behavior without creating complicated hierarchies.
+
+Modular and flexible: You can add traits to existing types without altering their original definition.
+
+Compile-time safety: If a type doesn’t implement all the required methods, you’ll know at compile time (not when your app crashes).
 
