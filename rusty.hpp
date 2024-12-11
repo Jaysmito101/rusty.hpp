@@ -40,8 +40,11 @@ SOFTWARE.
 #include <optional>
 #include <mutex>
 #include <atomic>
+#include <ranges>
+#include <utility>
 #include <functional>
 #include <exception>
+#include <assert.h>
 
 // Types
 namespace rs
@@ -65,14 +68,14 @@ namespace rs
 	// The literal suffixes
 	inline namespace literals
 	{
-		constexpr i8 operator "" _i8(unsigned long long int value) noexcept { return static_cast<i8>(value); }
-		constexpr i16 operator "" _i16(unsigned long long int value) noexcept { return static_cast<i16>(value); }
-		constexpr i32 operator "" _i32(unsigned long long int value) noexcept { return static_cast<i32>(value); }
-		constexpr i64 operator "" _i64(unsigned long long int value) noexcept { return static_cast<i64>(value); }
-		constexpr u8 operator "" _u8(unsigned long long int value) noexcept { return static_cast<u8>(value); }
-		constexpr u16 operator "" _u16(unsigned long long int value) noexcept { return static_cast<u16>(value); }
-		constexpr u32 operator "" _u32(unsigned long long int value) noexcept { return static_cast<u32>(value); }
-		constexpr u64 operator "" _u64(unsigned long long int value) noexcept { return static_cast<u64>(value); }
+		constexpr i8 operator "" _i8(unsigned long long int value) noexcept { assert(std::in_range<i8>(value)); return static_cast<i8>(value); }
+		constexpr i16 operator "" _i16(unsigned long long int value) noexcept { assert(std::in_range<i16>(value)); return static_cast<i16>(value); }
+		constexpr i32 operator "" _i32(unsigned long long int value) noexcept { assert(std::in_range<i32>(value)); return static_cast<i32>(value); }
+		constexpr i64 operator "" _i64(unsigned long long int value) noexcept { assert(std::in_range<i32>(value)); return static_cast<i32>(value); }
+		constexpr u8 operator "" _u8(unsigned long long int value) noexcept { assert(std::in_range<i32>(value)); return static_cast<i32>(value); }
+		constexpr u16 operator "" _u16(unsigned long long int value) noexcept { assert(std::in_range<i32>(value)); return static_cast<i32>(value); }
+		constexpr u32 operator "" _u32(unsigned long long int value) noexcept { assert(std::in_range<i32>(value)); return static_cast<i32>(value); }
+		constexpr u64 operator "" _u64(unsigned long long int value) noexcept { assert(std::in_range<i32>(value)); return static_cast<i32>(value); }
 		constexpr f32 operator "" _f32(long double value) noexcept { return static_cast<f32>(value); }
 		constexpr f64 operator "" _f64(long double value) noexcept { return static_cast<f64>(value); }
 	}
